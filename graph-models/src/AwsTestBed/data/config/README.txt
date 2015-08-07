@@ -1,0 +1,15 @@
+  - if nfs touch /data/conf/start  (start file includes scenario)
+  - nfs mount (except nfs server)
+  - write (rapper.sh)
+    - clean logs
+    - start traffic.sh
+    - look for config in /data/conf for role
+    - start “script” for role
+    - looks for /data/conf/checkpoint
+      - kill “script”
+      - kill “traffic”
+      - copy all logs to /data/log/scenario/hostnumber
+    - looks for /data/conf/stop
+      - same as checkpoint
+      - init 0
+

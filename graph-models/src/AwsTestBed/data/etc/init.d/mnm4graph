@@ -1,0 +1,181 @@
+#!/bin/sh
+#
+# mnm4graph          Start/Stop the cron clock daemon.
+#
+# chkconfig: 2345 99 10
+# description: cron is a standard UNIX program that runs user-specified \
+#              programs at periodic scheduled times. vixie cron adds a \
+#              number of features to the basic UNIX cron, including better \
+#              security and more powerful configuration options.
+
+### BEGIN INIT INFO
+# Provides: mnm4graph data collection
+# Required-Start: $local_fs $syslog $auditd $nfs
+# Required-Stop: $local_fs
+# Default-Start:  2345
+# Default-Stop: 99
+# Short-Description: run mnm4graph data collection processes.
+# Description: run mnm4graph data collection processes.
+### END INIT INFO
+
+
+RETVAL=0
+prog="mnm4graph"
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+
+IAM=`uname -n | sed -e "s/^ip-//" -e "s/[-]/./g"`
+ROLE=`grep ^$IAM /etc/hosts | awk '{print $2}'`
+LOG_DIR="/data/logs/${ROLE}_"`date +"%Y%m%d_%H"`
+STOP_FILE='/data/config/stop'
+
+
+#echo "IAM:$IAM:"
+#echo "ROLE:$ROLE:"
+#echo "LOG_DIR:$LOG_DIR:"
+
+
+
+start() {
+	if [ "x$ROLE" != "xnfs" ]; then
+	  echo "Mounting /data"
+	  mount /data
+	  echo "Mounted  /data"
+	else
+	  echo "Removing $STOP_FILE"
+	  rm -f ${STOP_FILE}* > /dev/null 2>&1
+	  echo "Removed  $STOP_FILE"
+	fi
+
+	echo "Stopping auditd"
+	service auditd  stop
+	echo "Stopped  auditd"
+	echo "Stopping rsyslog"
+	service rsyslog stop
+	echo "Stopped  rsyslog"
+	rm -f /var/log/audit/audit* > /dev/null 2>&1
+	rm -f /var/log/messages*    > /dev/null 2>&1
+	rm -f /var/log/traffic*     > /dev/null 2>&1
+	echo "Starting auditd"
+	service auditd  start
+	echo "Started  auditd"
+	echo "Starting rsyslog"
+	service rsyslog start
+	echo "Started  rsyslog"
+
+	if [ -f "/data/bin/traffic.sh" ];  then
+	  echo "Starting traffic"
+	  daemon '/data/bin/traffic.sh &'
+	  echo "Started  traffic"
+
+	  #if [ "x$ROLE" = "xdb" ];         then
+	  #  service mysqld start
+	  #fi
+
+	  if [ "x$ROLE" = "xgenfile" ];    then
+	    echo "Starting RandomFileGenerator"
+	    daemon '/data/bin/RandomFileGenerator.pl &'
+	    echo "Started  RandomFileGenerator"
+	  fi
+
+	  if [ "x$ROLE" = "xgetfile" ];    then
+	    echo "Starting RandomHTTPTrafficGenerator"
+	    daemon '/data/bin/RandomHTTPTrafficGenerator.pl &'
+	    echo "Started  RandomHTTPTrafficGenerator"
+	  fi
+
+	  if [ "x$ROLE" = "xingestfile" ]; then
+	    echo "Starting IngestRandomFile"
+	    daemon '/data/bin/IngestRandomFile.pl &'
+	    echo "Started  IngestRandomFile"
+	  fi
+
+	  if [ "x$ROLE" = "xweb" ];        then
+	    echo "Starting WebServer"
+	    daemon '/data/bin/WebServer.pl &'
+	    echo "Started  WebServer"
+	  fi
+	fi
+
+	return
+}
+
+
+stop() {
+	#touch $STOP_FILE
+
+	echo "Stopping auditd"
+	service auditd  stop
+	echo "Stopped  auditd"
+	echo "Stopping rsyslog"
+	service rsyslog stop
+	echo "Stopped  rsyslog"
+
+	if [ -f "/data/bin/traffic.sh" ];  then
+	  echo "Stopping traffic.sh"
+	  pkill -f /data/bin/traffic.sh
+	  echo "Stopped  traffic.sh"
+	  echo "Stopping tcpdump"
+	  pkill -f tcpdump
+	  echo "Stopped  tcpdump"
+
+	  #if [ "x$ROLE" = "xdb" ];         then
+	  #  service mysqld stop
+	  #fi
+
+	  if [ "x$ROLE" = "xgenfile" ];    then
+	    echo "Stopping RandomFileGenerator"
+	    pkill -f /data/bin/RandomFileGenerator.pl
+	    echo "Stopped  RandomFileGenerator"
+	  fi
+
+	  if [ "x$ROLE" = "xgetfile" ];    then
+	    echo "Stopping RandomHTTPTrafficGenerator"
+	    pkill -f /data/bin/RandomHTTPTrafficGenerator.pl
+	    echo "Stopped  RandomHTTPTrafficGenerator"
+	  fi
+
+	  if [ "x$ROLE" = "xingestfile" ]; then
+	    echo "Stopping IngestRandomFile"
+	    pkill -f /data/bin/IngestRandomFile.pl
+	    echo "Stopped  IngestRandomFile"
+	  fi
+
+	  if [ "x$ROLE" = "xweb" ];        then
+	    echo "Stopping WebServer"
+	    pkill -f /data/bin/WebServer.pl
+	    echo "Stopped  WebServer"
+	  fi
+	fi
+
+	mkdir -p                                        $LOG_DIR > /dev/null 2>&1
+	find /var/log/audit -name audit\*   -exec cp {} $LOG_DIR > /dev/null 2>&1
+	find /var/log       -name message\* -exec cp {} $LOG_DIR > /dev/null 2>&1
+	find /var/log       -name traffic\* -exec cp {} $LOG_DIR > /dev/null 2>&1
+
+	if [ "x$ROLE" != "xnfs" ]; then
+	  echo "umounting /data"
+	  umount /data
+	  echo "umounted  /data"
+	fi
+
+	return
+}
+
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    *)
+	echo $"Usage: $0 {start|stop}"
+	exit 1
+esac
+
+
+exit $RETVAL

@@ -1,0 +1,9 @@
+127.0.0.1   localhost localhost.localdomain
+10.0.0.30 log
+10.0.0.20 master
+10.0.100.139 nfs
+10.0.100.140 getfile
+10.0.100.141 genfile
+10.0.100.142 ingestfile
+10.0.100.143 db
+10.0.100.144 web

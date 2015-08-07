@@ -1,0 +1,77 @@
+#!/share/apps/python/3.2.2/bin/python3
+
+import os, sys
+
+class Counter:
+    def __init__(self):
+        self.hashtable = dict()
+
+    def add(self, item):
+        if item in self.hashtable:
+            self.hashtable[item] += 1
+        else:
+            self.hashtable[item] = 1 
+
+    def elements(self):
+        return self.hashtable.items()
+
+    def count(self, key):
+        if key in self.hashtable:
+            return self.hashtable[key]
+        else:
+            return -1
+
+    def len(self):
+        return len(self.hashtable.items())
+
+def compute_distribution(degree_table, outpath):
+
+    degree_distribution = Counter()
+    for vid, degree in degree_table.elements():
+        degree_distribution.add(degree)
+
+    print('     writing: ' + outpath)
+    fout = open(outpath, 'w')
+    for degree, count in sorted(degree_distribution.elements()):
+        fout.write(str(degree) + ' ' + str(count) + '\n')
+    fout.close()
+
+def compute_degree_dist(path):
+    print('Computing degree distribution for: ' + path)
+    f = open(path, 'r')
+    # compute degree counts
+    vertex_in_degrees = Counter()
+    vertex_out_degrees = Counter()
+    vertex_cum_degrees = Counter()
+    
+    for line in f:
+        tokens = line.split()
+        u = tokens[0]
+        v = tokens[1]
+        vertex_in_degrees.add(v)
+        vertex_out_degrees.add(u)
+        vertex_cum_degrees.add(u)
+        vertex_cum_degrees.add(v)
+         
+    f.close()
+    compute_distribution(vertex_in_degrees, path + '.in-deg.csv') 
+    compute_distribution(vertex_out_degrees, path + '.out-deg.csv') 
+    compute_distribution(vertex_cum_degrees, path + '.cum-deg.csv') 
+
+if len(sys.argv) == 2:
+    if os.path.isdir(sys.argv[1]):
+        files = os.listdir(sys.argv[1])
+        for f in files:
+            if f.find('.tsv') != -1:
+                path = sys.argv[1] + '/' + f
+                compute_degree_dist(path)
+    else:
+        compute_degree_dist(sys.argv[1])
+else:
+    num_files = 0
+    for line in sys.stdin:
+        num_files += 1
+        compute_degree_dist(line.strip())
+
+    if num_files == 0:
+        print(sys.argv[0] + ' <TSV graph file>|list through stdin')

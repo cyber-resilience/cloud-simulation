@@ -1,0 +1,37 @@
+Server isA BasicConcept
+Client isA BasicConcept
+
+MailServer isA Server
+MySQLServer isA Server
+DocServer isA Server
+SharePointServer isA DocServer
+OutlookServer isA Server
+WebServer isA Server
+HttpClient isA Client
+SQLClient isA Client
+Workstation isA Client
+Laptop isA Client
+iPad isA Client
+iPhone isA Client
+
+WebApp isA AppCluster
+WebApp has WebServer
+WebApp has MySQLServer
+WebApp.MySQLServer  uses WebApp.WebServer
+
+DBCluster isA AppCluster
+DBCluster has MySQLServer
+DBCluster has LoadBalancer
+
+MailServer isA AppCluster
+MailServer has LoadBalancer
+MailServer has OutlookServer(n)
+
+WebFarm isA AppCluster
+WebFarm has LoadBalancer
+WebFarm has WebServer(n)
+
+# AWS specific default settings
+
+Server runsOn FatNodeInstance
+Client runsOn MicroInstance

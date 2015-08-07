@@ -1,0 +1,2 @@
+*Clear file and replace with the following structure*
+host,username,password
