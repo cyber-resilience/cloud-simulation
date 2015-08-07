@@ -1,6 +1,17 @@
 import networkx as nx
-import random, csv, statistics, glob
+import matlab.engine as m
+import random, csv, statistics, glob, shutil
 from collections import defaultdict
+
+import io
+out = io.StringIO()
+err = io.StringIO()
+
+#If take_action is true, matlab is required as part of the feeback loop.
+#This program expects Main_demo.m to be in the same directory to run the
+#whole loop along with the action recommendation.
+take_action = False
+seed = 2343
 
 class CyberGraph:
 
@@ -42,8 +53,8 @@ class CyberGraph:
     #total_duration: the total duration of this flow
     #start_time: time (in seconds) at which this connection was established
     #end_time: time (in seconds) at which this connection was removed
-    def add_dataflow_edge(self, user_or_application, application, num_bytes, start_time, end_time):
-        self.G.add_edge(user_or_application, application, type='gets_data', bytes=num_bytes, start=start_time, end=end_time)
+    def add_dataflow_edge(self, user_or_application, application, num_bytes, start_time, end_time, user_responsible):
+        self.G.add_edge(user_or_application, application, type='gets_data', bytes=num_bytes, user=user_responsible, start=start_time, end=end_time)
 
     #Utility function for simulation
     def create_dataflow_edges(self, user_or_application, application, num_flows, mean_bytes, earliest_time, latest_time):
@@ -62,7 +73,7 @@ class CyberGraph:
     #Utility function for simulation
     #This function will assign the duration of the this particular dataflow edge according to the number of
     #requests currently being processed by the system.
-    def create_modeled_dataflow_edge(self, user_or_application, application, start_time, num_bytes):
+    def create_modeled_dataflow_edge(self, user_or_application, application, start_time, num_bytes, user_responsible):
         if user_or_application in self.blocked_users[application]:
             return
         start_time = float(start_time)
@@ -71,7 +82,7 @@ class CyberGraph:
         b = 4           #Exponent of the steep increase
         c = 0.1         #Constant multiplier of the power component
         d = 0.1         #y-intercept
-        p = 100          #Cricital point (number of flows at which it starts to fail
+        p = 50          #Cricital point (number of flows at which it starts to fail
         ## This is the minimum duration of a netflow.
         min_duration = 0.1
 
@@ -100,7 +111,7 @@ class CyberGraph:
             mean = c*((r-p)**b)+a*r+d
         mean = max(mean, min_duration)
         duration = random.gauss(mean, mean/10)
-        self.add_dataflow_edge(user_or_application, application, num_bytes, start_time, start_time + duration)
+        self.add_dataflow_edge(user_or_application, application, num_bytes, start_time, start_time + duration, user_responsible)
 
 
 
@@ -173,8 +184,8 @@ class CyberGraph:
             Ghost.add_edge(edge[0], edge[1])
         return Ghost
 
+##Function designed to build and run an example scenario
     def build_sample_graph(self):
-
 ####### Things that happen at system boot ########
         #Users
         self.add_user_node('HR1')
@@ -327,57 +338,88 @@ class CyberGraph:
         self.add_hosting_edge('employee-database', 'database.company.com', 62,0)
 
 ####### Set times ############
-        random.seed(456357)
+        random.seed(seed)
+        
         flows = []
         for i in range(200):
-            flows.append((random.uniform(0,200),'HR1', 'payroll-app'))
-            flows.append((random.uniform(0,200),'HR2', 'payroll-app'))
-            flows.append((random.uniform(0,200),'HR3', 'payroll-app'))
-            flows.append((random.uniform(0,200),'HR4', 'payroll-app'))
-            flows.append((random.uniform(0,200),'HR5', 'payroll-app'))
-            flows.append((random.uniform(0,200),'HR1', 'ETR'))
-            flows.append((random.uniform(0,200),'HR2', 'ETR'))
-            flows.append((random.uniform(0,200),'HR3', 'ETR'))
-            flows.append((random.uniform(0,200),'HR5', 'ETR'))
-            flows.append((random.uniform(0,200),'CEO', 'ETR'))
-            flows.append((random.uniform(0,200),'Dev1', 'ETR'))
-            flows.append((random.uniform(0,200),'Dev2', 'ETR'))
-            flows.append((random.uniform(0,200),'Dev3', 'ETR'))
-            flows.append((random.uniform(0,200),'Intern', 'ETR'))
-            flows.append((random.uniform(0,200),'HR1', 'email-host'))
-            flows.append((random.uniform(0,200),'HR2', 'email-host'))
-            flows.append((random.uniform(0,200),'HR3', 'email-host'))
-            flows.append((random.uniform(0,200),'HR4', 'email-host'))
-            flows.append((random.uniform(0,200),'HR5', 'email-host'))
-            flows.append((random.uniform(0,200),'CEO', 'email-host'))
-            flows.append((random.uniform(0,200),'Dev1', 'email-host'))
-            flows.append((random.uniform(0,200),'Dev2', 'email-host'))
-            flows.append((random.uniform(0,200),'Dev3', 'email-host'))
-            flows.append((random.uniform(0,200),'Intern', 'email-host'))
-            flows.append((random.uniform(0,200),'Dev2', 'website-host'))
-            flows.append((random.uniform(0,200),'Dev3', 'employee-database'))
-            flows.append((random.uniform(0,200),'payroll-app', 'ETR'))
-            flows.append((random.uniform(0,200),'website-backup', 'website-host'))
+            flows.append((random.uniform(0,200),'HR1', 'payroll-app', 'HR1'))
+            flows.append((random.uniform(0,200),'HR2', 'payroll-app', 'HR2'))
+            flows.append((random.uniform(0,200),'HR3', 'payroll-app', 'HR3'))
+            flows.append((random.uniform(0,200),'HR4', 'payroll-app', 'HR4'))
+            flows.append((random.uniform(0,200),'HR5', 'payroll-app', 'HR5'))
+            flows.append((random.uniform(0,200),'HR1', 'ETR', 'HR1'))
+            flows.append((random.uniform(0,200),'HR2', 'ETR', 'HR2'))
+            flows.append((random.uniform(0,200),'HR3', 'ETR', 'HR3'))
+            flows.append((random.uniform(0,200),'HR5', 'ETR', 'HR5'))
+            flows.append((random.uniform(0,200),'CEO', 'ETR', 'CEO'))
+            flows.append((random.uniform(0,200),'Dev1', 'ETR', 'Dev1'))
+            flows.append((random.uniform(0,200),'Dev2', 'ETR', 'Dev2'))
+            flows.append((random.uniform(0,200),'Dev3', 'ETR', 'Dev3'))
+            flows.append((random.uniform(0,200),'Intern', 'ETR', 'Intern'))
+            flows.append((random.uniform(0,200),'HR1', 'email-host', 'HR1'))
+            flows.append((random.uniform(0,200),'HR2', 'email-host', 'HR2'))
+            flows.append((random.uniform(0,200),'HR3', 'email-host', 'HR3'))
+            flows.append((random.uniform(0,200),'HR4', 'email-host', 'HR4'))
+            flows.append((random.uniform(0,200),'HR5', 'email-host', 'HR5'))
+            flows.append((random.uniform(0,200),'CEO', 'email-host', 'CEO'))
+            flows.append((random.uniform(0,200),'Dev1', 'email-host', 'Dev1'))
+            flows.append((random.uniform(0,200),'Dev2', 'email-host', 'Dev2'))
+            flows.append((random.uniform(0,200),'Dev3', 'email-host', 'Dev3'))
+            flows.append((random.uniform(0,200),'Intern', 'email-host', 'Intern'))
+            flows.append((random.uniform(0,200),'Dev2', 'website-host', 'Dev2'))
+            flows.append((random.uniform(0,200),'Dev3', 'employee-database', 'Dev3'))
+            flows.append((random.uniform(0,200),'payroll-app', 'ETR', 'Dev1'))
+            flows.append((random.uniform(0,200),'website-backup', 'website-host', 'Dev1'))
 
         ##External user is the weird one##
         for i in range(800):
-            flows.append((random.uniform(0,200),'External', 'website-host'))
+            flows.append((random.uniform(0,200),'External', 'website-host', 'External'))
         for i in range(5000):
-            flows.append((50+i/1000, 'External', 'website-host'))
+            flows.append((50+i/1000, 'External', 'website-host', 'External'))
 
 ####### Loop through the time windows and add flows/perform actions ############
         i = 1
+
+        if take_action: engine = m.start_matlab()
+        
         for flow in sorted(flows):
             if flow[0] >= i: #We have hit the next time window
-                print(i)
+                #print(i)
                 if i > 10:
                     self.print_steady_state_with_snapshot(i-1,i)
+                    ####Print out the throughput for this snapshot (Netflow case)
+                    times = []
+                    with open('output/test/' + str(i-1) + '-' + str(i) + '_application_graph.csv') as f:
+                        reader = csv.reader(f)
+                        printzero = True
+                        for row in reader:
+                            if row[1] == 'website-host':
+                                num_bytes = float(row[2])
+                                duration = float(row[3])
+                                times.append(num_bytes/duration)
+                                printzero = False
+                        if printzero: times.append(0)
+                    print(statistics.mean(times))
+                    #Decide to take action or not
+                    if take_action: engine.Main_demo(nargout=0,stdout=out,stderr=err)
+                    with open('output.csv') as f:
+                        reader = csv.reader(f)
+                        j = 0
+                        for row in reader:
+                            if not j==0:
+                                if take_action and float(row[1]) > 0:
+                                    print('Taking action against', row[0])
+                                    self.blocked_users['website-host'].append(row[0])
+                                    self.remove_pending_requests(i,row[0],'website-host')
+                                    self.remove_pending_requests(i,row[0],'email-host')
+                            j += 1
+                                    
                 #if i == 52:
                 #    self.blocked_users['website-host'].append('External')
                 #    self.remove_pending_requests(54,'External','website-host')
                 #    self.remove_pending_requests(54,'External','email-host')
                 i += 1
-            self.create_modeled_dataflow_edge(flow[1], flow[2], flow[0], random.gauss(50,5))
+            self.create_modeled_dataflow_edge(flow[1], flow[2], flow[0], random.gauss(50,5), flow[3])
 
     def remove_pending_requests(self, time, user, application):
         for edge in self.G.edges(data=True, keys=True):
@@ -407,9 +449,6 @@ class CyberGraph:
                 durations[(edge[0], edge[1])].append(edge[2]['end'] - edge[2]['start'])
                 sizes[(edge[0], edge[1])].append(edge[2]['bytes'])
             for pair in durations:
-        #QUICK HACK FOR PLOTTING:
-        #        for duration in durations[pair]:
-        #            writer.writerow([pair[0], pair[1], duration])
                 writer.writerow([pair[0], pair[1], statistics.median(sizes[pair]), statistics.median(durations[pair]), len(durations[pair])])
         with open(prefix+'access_graph.csv', mode='w', newline='') as f:
             writer = csv.writer(f, delimiter=',')
@@ -421,6 +460,12 @@ class CyberGraph:
             writer.writerow(['src', 'dst', 'port_number'])
             for edge in edgesets[3]:
                 writer.writerow([edge[0], edge[1], edge[2]['port']])
+        #Copy over for use of Matlab
+        if folder == 'steady':
+            shutil.copy(prefix+'application_graph.csv', 'steady.csv')
+        elif folder == 'test':
+            shutil.copy(prefix+'application_graph.csv', 'test.csv')
+            
 
     def print_steady_state_with_snapshot(self, start_time, end_time):
         duration = end_time - start_time
@@ -428,7 +473,7 @@ class CyberGraph:
         self.print_snapshot(steady_start, start_time, 'steady')
         self.print_snapshot(start_time, end_time, 'test')
 
-
+#Repeats the output that should happen automatically during generation
 def print_throughput():
     files = glob.glob('output/test/*application*.csv')
     times = []
@@ -462,9 +507,5 @@ def print_throughput():
 
 if __name__ == "__main__":
     a = CyberGraph()
+    #Included to demonstrate scenario
     a.build_sample_graph()
-
-
-# NOTES:
-# talk about the fact that other users are effected by the reduction in QOS due to DOS
-# plot durations of all flows that finish
