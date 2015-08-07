@@ -1,0 +1,6 @@
+---
+# file: site.yaml
+- include: common.yaml
+- include: db.yaml
+- include: simulation.yaml
+#- include: attack.yaml

@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+
+package WebInfo;
+
+use strict;
+use Carp;
+
+
+sub new
+{
+  my $proto        =  shift;
+  my $class        =  ref($proto) || $proto;
+
+  my $self         =
+  {
+    HOST           => '{{ machines[ec2_tag_Name].web_host }}',
+  };
+
+  bless($self, $class);
+
+  return($self);
+}
+
+
+sub get_host()
+{
+  my $self         =  shift;
+  return($self->{'HOST'});
+}
+
+
+1;

@@ -1,0 +1,7 @@
+---
+- name: shutdown mnms on instances
+  hosts: tag_AnsibleCreated_True
+  tasks:
+    - name: shutdown mnms service
+      command: /etc/init.d/mnm4graph stop
+      sudo:    yes

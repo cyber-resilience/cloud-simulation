@@ -1,0 +1,50 @@
+---
+# Install MySQL
+
+- name:             install packages
+  sudo:             yes
+  yum:              name={{ item }} state=installed
+  with_items:
+    - mysql
+    - mysql-server
+    - python-devel
+    - mysql-devel
+    - MySQL-python27
+
+- name:             Start the MySQL service
+  sudo:             yes
+  service:          name=mysqld state=started enabled=yes
+
+# 'localhost' needs to be the last item for idempotency, see
+# http://ansible.cc/docs/modules.html#mysql-user
+- name:             update mysql root password for all root accounts
+  sudo:             yes
+  mysql_user:       name=root host={{ item.key }} password={{ mysql_password }} priv=*.*:ALL,GRANT state=present
+  when:             item.value.db_host is defined and item.value.db_host == ec2_tag_Name
+  with_dict:        machines
+
+- name:             update mysql root password for all root accounts
+  sudo:             yes
+  mysql_user:       name=root host={{ item }} password={{ mysql_password }} priv=*.*:ALL,GRANT state=present
+  with_items:
+    - 127.0.0.1
+    - ::1
+    - localhost
+
+- name:             copy .my.cnf file with root password credentials
+  sudo:             yes
+  template:         src=root/.my.cnf dest=/root/.my.cnf owner=root mode=0600
+
+- name:             ensure anonymous users are not in the database
+  sudo:             yes
+  mysql_user:       name='' host={{ item }} state=absent
+  with_items:
+    - localhost
+
+- name:             remove the test database
+  sudo:             yes
+  mysql_db:         name=test state=absent
+
+- name:             create awstestbed db
+  sudo:             yes
+  mysql_db:         name=awstestbed state=present

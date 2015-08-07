@@ -1,0 +1,122 @@
+---
+# All machines need these settings
+
+- name:       hosts file
+  sudo:       yes
+  template:   src=hosts.j2 dest=/etc/hosts
+
+- name:       sudoers file
+  sudo:       yes
+  template:   src=sudoers.j2 dest=/etc/sudoers validate='visudo -cf %s'
+
+#- name:          flower configuration file
+#  sudo:          yes
+#  template:      src=flower.conf.j2 dest=/etc/flower.conf
+
+- name:       install packages
+  sudo:       yes
+  yum:        name={{ item }} state=installed
+  with_items:
+    - tcpdump
+    - gcc
+    - cpan
+    - perl-DBI
+    - perl-DBD-MySQL
+    - perl-App-cpanminus
+    - python27-pip
+    - python27-paramiko
+    - python27-PyYAML
+    - python27-jinja2
+    - awslogs
+
+- name:       install PERL modules
+  sudo:       yes
+  cpanm:      name={{ item }}
+  with_items:
+    - "HTTP::Server::Simple::CGI"
+    - "LWP::Simple"
+
+- name:       install pip packages
+  sudo:       yes
+  pip:        name={{ item }} state=present
+  with_items:
+    - httplib2
+    - passlib
+
+- name:       copy services
+  sudo:       yes
+  copy:       src=etc dest=/ owner=root group=root
+  notify:
+    - restart sshd
+    - restart auditd
+    - restart awslogs
+
+- name:       setup awscli
+  sudo:       yes
+  template:   src=awscli.conf dest=/etc/awslogs/awscli.conf
+  notify: restart awslogs
+
+- name:       enable awslogs service
+  sudo:       yes
+  service:    name=awslogs enabled=yes
+
+- name:       create data directory
+  sudo:       yes
+  file:       path=/data state=directory owner=root group=root mode=775
+
+- name:       clean up data files
+  sudo:       yes
+  cron:       name="clean up old data" minute="0,20,40" job="/etc/clean_up_files.sh"
+
+#- name:          copy flower
+#  sudo:          yes
+#  copy:          src=opt dest=/ force=no owner=root group=root
+
+#- name:          make sure flower is executable
+#  sudo:          yes
+#  file:          path=/opt/flower/bin/flower state=file owner=root group=root mode=775
+
+
+- name:       copy data directory structure
+  sudo:       yes
+  file:       path=/data/{{ item }} state=directory mode=0775
+  with_items:
+    - attack
+    - flower
+    - genfile
+    - getfile
+    - ingest
+    - logs
+    - web
+    - files
+
+- name:       copy data directory files
+  sudo:       yes
+  copy:       src=data/bin dest=/data/ owner=root group=root mode=0775
+#  with_items:
+#    - README.txt
+#    - RandomFileGenerator.pl
+#    - RandomHTTPTrafficGenerator.pl
+#    - traffic.sh
+
+- name:       setup upload cron
+  sudo:       yes
+  cron:       name="upload_pcap" job="/data/bin/upload_pcap.sh >> /var/log/upload_pcap.log 2>&1"
+
+- name:       copy db templates
+  sudo:       yes
+  template:   src={{ item }}.j2 dest=/data/bin/{{ item }}
+  when:       machines[ec2_tag_Name].db_host is defined
+  with_items:
+    - DataDB.pm
+
+- name:       copy web templates
+  sudo:       yes
+  template:   src={{ item }}.j2 dest=/data/bin/{{ item }}
+  when:       machines[ec2_tag_Name].web_host is defined
+  with_items:
+    - WebInfo.pm
+
+- name:       copy mnm4graph template
+  sudo:       yes
+  template:   src=mnm4graph.j2 dest=/etc/init.d/mnm4graph owner=root group=root mode=775

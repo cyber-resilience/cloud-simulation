@@ -1,0 +1,172 @@
+#!/bin/sh
+#
+#        /etc/rc.d/init.d/mnm4graph
+#
+# Start/Stop the mnm4graph
+#
+# chkconfig: 345 99 10
+# description: run mnm4graph data collection processes.
+
+### BEGIN INIT INFO
+# Provides: mnm4graph
+# Required-Start: $syslog $local_fs $auditd
+# Required-Stop:  $syslog $local_fs
+# Default-Start:  2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: run mnm4graph data collection processes.
+# Description: run mnm4graph data collection processes.
+### END INIT INFO
+
+
+prog="mnm4graph"
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+
+HOST={{ ec2_tag_Name }}
+ROLE={{ machines[ec2_tag_Name].type }}
+BASE_LOG_DIR="/var/log"
+LOG_FILE="${HOST}_"`date +"%Y%m%d_%H"`
+LOG_DIR="${BASE_LOG_DIR}/${LOG_FILE}"
+
+
+#echo "HOST:$HOST:"
+#echo "ROLE:$ROLE:"
+#echo "LOG_DIR:$LOG_DIR:"
+
+
+
+start() {
+#        echo "Stopping auditd"
+#        service auditd  stop
+#        echo "Stopped  auditd"
+#        echo "Stopping rsyslog"
+#        service rsyslog stop
+#        echo "Stopped  rsyslog"
+#        rm -f /var/log/audit/audit* > /dev/null 2>&1
+#        rm -f /var/log/messages*    > /dev/null 2>&1
+#        rm -f /var/log/traffic*     > /dev/null 2>&1
+#        echo "Stopped  PCAP collection"
+#        find /var/log -name \*.pcap -exec echo rm -f {} \;
+#        echo "Starting auditd"
+#        service auditd  start
+#        echo "Started  auditd"
+#        echo "Starting rsyslog"
+#        service rsyslog start
+#        echo "Started  rsyslog"
+
+        if [ -f "/data/bin/traffic.sh" ];  then
+          echo "Starting traffic"
+          daemon '/data/bin/traffic.sh &'
+          echo "Started  traffic"
+          sleep 10
+
+          #if [ "x$ROLE" = "xDBSERVER" ];         then
+          #  service mysqld start
+          #fi
+
+          if [ "x$ROLE" = "xINGESTSERVER" ];    then
+            echo "Starting RandomFileGenerator"
+            daemon '/data/bin/RandomFileGenerator.pl &'
+            echo "Started  RandomFileGenerator"
+          fi
+
+          if [ "x$ROLE" = "xGETFILE" ];    then
+            echo "Starting RandomHTTPTrafficGenerator"
+            daemon '/data/bin/RandomHTTPTrafficGenerator.pl &'
+            echo "Started  RandomHTTPTrafficGenerator"
+          fi
+
+          if [ "x$ROLE" = "xWEBSERVER" ];        then
+            echo "Starting WebServer"
+            daemon '/data/bin/WebServer.pl &'
+            echo "Started  WebServer"
+          fi
+        fi
+
+        return
+}
+
+
+stop() {
+#        echo "Stopping auditd"
+#        service auditd  stop
+#        echo "Stopped  auditd"
+#        echo "Stopping rsyslog"
+#        service rsyslog stop
+#        echo "Stopped  rsyslog"
+
+        if [ -f "/data/bin/traffic.sh" ];  then
+          echo "Stopping traffic.sh"
+          pkill -f /data/bin/traffic.sh
+          echo "Stopped  traffic.sh"
+          echo "Stopping tcpdump"
+          pkill -f tcpdump
+          echo "Stopped  tcpdump"
+
+#          if [ "x$ROLE" = "xDBSERVER" ];         then
+#            service mysqld stop
+#          fi
+
+          if [ "x$ROLE" = "xINGESTSERVER" ];    then
+            echo "Stopping RandomFileGenerator"
+            pkill -f /data/bin/RandomFileGenerator.pl
+            echo "Stopped  RandomFileGenerator"
+          fi
+
+          if [ "x$ROLE" = "xGETFILE" ];    then
+            echo "Stopping RandomHTTPTrafficGenerator"
+            pkill -f /data/bin/RandomHTTPTrafficGenerator.pl
+            echo "Stopped  RandomHTTPTrafficGenerator"
+          fi
+
+          if [ "x$ROLE" = "xWEBSERVER" ];        then
+            echo "Stopping WebServer"
+            pkill -f /data/bin/WebServer.pl
+            echo "Stopped  WebServer"
+          fi
+        fi
+
+#        echo "mkdir -p $LOG_DIR"
+#              mkdir -p $LOG_DIR    > /dev/null 2>&1
+#        cd $BASE_LOG_DIR
+#        find /var/log/audit -name audit\*   -exec echo cp {} $LOG_DIR \;
+#        find /var/log       -name message\* -exec echo cp {} $LOG_DIR \;
+#        find /var/log       -name traffic\* -exec echo cp {} $LOG_DIR \;
+#        find /var/log/audit -name audit\*   -exec      cp {} $LOG_DIR \; > /dev/null 2>&1
+#        find /var/log       -name message\* -exec      cp {} $LOG_DIR \; > /dev/null 2>&1
+#        find /var/log       -name traffic\* -exec      cp {} $LOG_DIR \; > /dev/null 2>&1
+#        echo "tar czf ${LOG_FILE}.tgz $LOG_DIR"
+#              tar czf ${LOG_FILE}.tgz $LOG_DIR
+#        echo "sync"
+#              sync
+#
+#        echo "sleep 1"
+#              sleep 1
+#
+#        echo "aws s3 cp ${LOG_FILE}.tgz s3://mnms4graphs/logs/${LOG_FILE}.tgz"
+#              aws s3 cp ${LOG_FILE}.tgz s3://mnms4graphs/logs/${LOG_FILE}.tgz
+        RETVAL=$?
+
+        return $RETVAL
+}
+
+
+RETVAL=0
+case "$1" in
+    start)
+        start
+        RETVAL=$?
+        ;;
+    stop)
+        stop
+        RETVAL=$?
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop}"
+        RETVAL=1
+esac
+
+
+exit $RETVAL

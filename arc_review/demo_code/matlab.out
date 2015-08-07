@@ -1,0 +1,137 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2015 The MathWorks, Inc.
+                   R2015a (8.5.0.197613) 64-bit (glnxa64)
+                             February 12, 2015
+
+ 
+To get started, type one of these: helpwin, helpdesk, or demo.
+For product information, visit www.mathworks.com.
+ 
+    ----------------------------------------------------
+	Your MATLAB license will expire in 11 days.
+	Please contact your system administrator or
+	go to MathWorks.com to renew this license.
+    ----------------------------------------------------
+
+	Trial License -- for use to evaluate programs for possible purchase as an end-user only.
+
+
+enable_plot =
+
+     0
+
+
+user_name = 
+
+    'dev1'    'dev2'    'ceo'    'sales'
+
+
+server_name = 
+
+    'web1'    'web2'
+
+
+ind_user =
+
+     5     8     3     7
+
+
+ind_server =
+
+     9     6
+
+
+n_user =
+
+     4
+
+
+n_server =
+
+     2
+
+
+b =
+
+    1.4000
+
+
+c =
+
+   1.0000e-08
+
+
+phi =
+
+     2
+
+
+intercept =
+
+   8.9624e-08
+
+
+knee_point =
+
+        2500
+
+
+a =
+
+   1.0023e-10
+
+
+run =
+
+    10
+
+
+penalty_sparsity =
+
+   1.0000e-05
+
+
+beta_q =
+
+   1.0000e-05
+
+
+q =
+
+     1
+     1
+     1
+     1
+
+
+task_steady =
+
+    0.0345
+    0.0310
+
+over critical
+
+task_test =
+
+   1.0e+03 *
+
+    5.0720
+    0.0000
+
+
+iteration_FISTA_BT_avg =
+
+     1
+
+
+T_FISTA = 
+
+             FISTA_BT_sort
+             _____________
+
+    dev1     0            
+    dev2     0            
+    ceo      0            
+    sales    0            
+

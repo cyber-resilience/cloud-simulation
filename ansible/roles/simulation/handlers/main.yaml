@@ -1,0 +1,6 @@
+---
+# Service Handlers
+
+- name:     restart mnm4graph
+  sudo:     yes
+  service:  name={{ item }} state=restarted pattern=/var/log/traffic

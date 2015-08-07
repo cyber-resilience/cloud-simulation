@@ -1,0 +1,117 @@
+---
+- name: setup aws
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+  - ec2_vpc:
+      cidr_block: 172.31.0.0/16
+      resource_tags:
+        Name: Development
+        Type: Development
+        Scenario: single_subnet
+      subnets:
+        - cidr: "{{ subnet0_cidr }}"
+          resource_tags:
+            Name: Public
+            Type: Public
+        - cidr: "{{ subnet1_cidr }}"
+          resource_tags:
+            Name: Private
+            Type: Private
+      route_tables:
+        - subnets:
+            - "{{ subnet0_cidr }}"
+            - "{{ subnet1_cidr }}"
+          routes:
+            - dest: 0.0.0.0/0
+              gw: igw
+      internet_gateway: yes
+      region: "{{ region }}"
+      state: present
+      wait: yes
+    register: vpc
+
+  - name: ec2 group for web server
+    ec2_group:
+      name: web
+      description: allows ssh and www
+      vpc_id: "{{ vpc.vpc.id }}"
+      region: "{{ region }}"
+      rules:
+        - proto: all
+          cidr_ip: "{{ subnet0_cidr }}"
+        - proto: all
+          cidr_ip: "{{ subnet1_cidr }}"
+        - proto: tcp
+          from_port: 80
+          to_port: 80
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 130.20.0.0/16
+
+  - name: ec2 security group for workers
+    ec2_group:
+      name: worker
+      description: allows ssh and nfs
+      vpc_id: "{{ vpc.vpc.id }}"
+      region: "{{ region }}"
+      rules:
+        - proto: all
+          cidr_ip: "{{ subnet0_cidr }}"
+        - proto: all
+          cidr_ip: "{{ subnet1_cidr }}"
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 130.20.0.0/16
+
+#  - ec2_ami_find:
+#      name: "amzn-ami-hvm-*"
+#      owner: amazon
+#      architecture: x86_64
+#      hypervisor: xen
+#      virtualization_type: hvm
+#      is_public: yes
+#      region: "{{ region }}"
+#      sort: name
+#      sort_order: descending
+#      sort_end: 1
+#    register: ami_find
+#
+#  - debug: var=ami_find
+
+  - name: Start the EC2 instances
+    ec2:
+      image: "{{ ami_image }}"
+      instance_type: "{{ item.value.instance_type }}"
+      key_name: "{{ key_name }}"
+      group: "{{ item.value.security_group }}"
+      vpc_subnet_id: "{{ vpc.subnets[item.value.subnet].id }}"
+      assign_public_ip: yes
+      instance_profile_name: writelogs
+      instance_tags:
+        Name: "{{ item.key }}"
+        SystemType: "{{ item.value.type }}"
+        CustomType: "{{ item.value.custom_tag_value }}"
+        AnsibleCreated: True
+      count_tag:
+        Name: "{{ item.key }}"
+        SystemType: "{{ item.value.type }}"
+        CustomType: "{{ item.value.custom_tag_value }}"
+        AnsibleCreated: True
+      exact_count: 1
+      region: "{{ region }}"
+      wait: yes
+    register: instances
+    with_dict: machines
+
+  - name: query instancess to find public side information
+    add_host: hostname={{ item.tagged_instances[0].public_ip }} groups=launched
+    with_items: instances.results
+
+  - name: Wait for SSH to come up
+    wait_for: host={{ item }} port=22 timeout=60 state=started
+    with_items: groups.launched

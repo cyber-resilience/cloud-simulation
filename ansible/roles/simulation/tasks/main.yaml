@@ -1,0 +1,10 @@
+---
+
+- name:          start mnm4graph
+  sudo:          yes
+  service:       name=mnm4graph state=started pattern=/var/log/traffic enabled=yes
+
+- name:          add interesting users
+  sudo:          yes
+  user:          name={{ item }} password={{ user_passwords[item] }} createhome=yes shell=/bin/bash state=present
+  with_items:    machines[ec2_tag_Name].users

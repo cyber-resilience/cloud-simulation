@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='icon' type='image/png' href='data:image/png;base64,iVBORw0KGgo='>
+<meta http-equiv='cache-control' content='max-age=0'>
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='-1'>
+<meta http-equiv='expires' content='Tue, 01 Jan 1980 11:00:00 GMT'>
+<meta http-equiv='pragma' content='no-cache'>
+<meta http-equiv='refresh' content='30'>
+<script>
+  function getDate() {
+    var x = new Date(document.lastModified);
+    document.getElementById('demo').innerHTML = x;
+}
+  var last_mod = document.lastModified;
+</script>
+<style>
+table, td, th {
+  border: 1px solid green;
+}
+
+th {
+  background-color: green;
+  color: white;
+}
+td {
+  text-align: right;
+}
+</style>
+</head>
+<body onload='getDate()'>
+<h4 id='demo'>
+</h4>
+<p>
+<table>
+<tr><th>Mission</th><th>% Confidence</th><th>Recommended Action</th></tr>
+<tr><td >dev1</td><td >0.0</td><td >&nbsp;</td></tr>
+<tr><td >dev2</td><td >0.0</td><td >&nbsp;</td></tr>
+<tr><td >ceo</td><td >0.0</td><td >&nbsp;</td></tr>
+<tr><td >sales</td><td >0.0</td><td >&nbsp;</td></tr>
+</table>
+</p>
+<p>
+<img src='https://s3-us-west-2.amazonaws.com/mnms4graphs/data/latency_window.png'>
+</p>
+</body>
+</html>

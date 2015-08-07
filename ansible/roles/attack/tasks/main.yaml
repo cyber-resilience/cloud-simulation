@@ -1,0 +1,5 @@
+---
+
+- name:     copy attack code to NFS
+  sudo:     yes
+  copy:     src=roles/attack/files/ dest=/data/attack owner=root group=root mode=a+rwx

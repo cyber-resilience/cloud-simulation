@@ -1,0 +1,5 @@
+---
+- name:  start attack
+  hosts: NFS
+  roles:
+    - attack

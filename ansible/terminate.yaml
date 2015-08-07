@@ -1,0 +1,12 @@
+---
+- name: terminate instances
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: terminate instances
+      ec2:
+        state: absent
+        instance_ids: "{{ hostvars[item].ec2_id }}"
+        region: "{{ region }}"
+      with_items: groups.tag_AnsibleCreated_True

@@ -1,0 +1,125 @@
+# AWS info
+region:          us-west-2
+subnet0_cidr:    172.31.1.0/24
+subnet1_cidr:    172.31.2.0/24
+key_name:        MM
+#ami_image:       ami-dfc39aef
+ami_image:       ami-e7527ed7
+
+# Mysql Info
+mysql_password:  WhatIsThePa55word
+mysql_user:      root
+mysql_db:        awstestbed
+
+# Machine Info
+machines:
+  web1:
+    subnet: 0
+    instance_type: m4.large
+    security_group: web
+    type: WEBSERVER
+    custom_tag_value: perl
+    db_host: db1
+    users:
+      - adam
+      - devin
+    sudoers:
+      - adam
+  web2:
+    subnet: 0
+    instance_type: m4.large
+    security_group: web
+    type: WEBSERVER
+    custom_tag_value: perl
+    db_host: db2
+    users:
+      - adam
+      - darryl
+    sudoers:
+      - adam
+      - darryl
+  db1:
+    subnet: 0
+    instance_type: m4.large
+    security_group: worker
+    type: DBSERVER
+    custom_tag_value: mysql
+    users:
+      - adam
+    sudoers:
+      - adam
+  db2:
+    subnet: 0
+    instance_type: m4.large
+    security_group: worker
+    type: DBSERVER
+    custom_tag_value: mysql
+    users:
+      - adam
+    sudoers:
+      - adam
+  ingest1:
+    subnet: 0
+    instance_type: m4.large
+    security_group: worker
+    type: INGESTSERVER
+    custom_tag_value: ingest
+    db_host: db1
+    users:
+      - adam
+    sudoers:
+      - adam
+  sales:
+    subnet: 1
+    instance_type: m4.large
+    security_group: worker
+    type: GETFILE
+    custom_tag_value: getfile
+    web_host: web1
+    users:
+      - sally
+    sudoers:
+      - sally
+  ceo:
+    subnet: 1
+    instance_type: m4.large
+    security_group: worker
+    type: GETFILE
+    custom_tag_value: getfile
+    web_host: web1
+    users:
+      - cleo
+      - adam
+      - sally
+    sudoers:
+      - cleo
+  dev1:
+    subnet: 1
+    instance_type: m4.large
+    security_group: worker
+    type: GETFILE
+    custom_tag_value: getfile
+    web_host: web2
+    users:
+      - devin
+    sudoers:
+      - devin
+  dev2:
+    subnet: 1
+    instance_type: m4.large
+    security_group: worker
+    type: INGESTSERVER
+    custom_tag_value: getfile
+    db_host: db2
+    users:
+      - darryl
+      - adam
+    sudoers:
+      - darryl
+      - adam
+user_passwords:
+  sally:  $6$mnm$yargZ9Y3mROLXkUDXywuvYX0aqcPew40lPuWcXuEL1KM0J0AqBIM9L74jNxEpX5OM0RQqYGlt8TpzQtEtyZMS. # Sales
+  cleo:   $6$mnm$lmxHEJGefI0C6y0D32thATeb28Ca3yWPlndjU8efAWMwsXpsUCiyEnfdStC.GTh07LOK7bzexvY8ynmrOKYEQ/ # CEO
+  devin:  $6$mnm$psWe1nXdSP8E4jCUrGJ.MM4nzBdKann4dtr0pHqRt16SE4EQprwczEBdBV5qkdGUTFM4VpgLRqRNzMU/RpveF1 # DEV1
+  adam:   $6$mnm$E4qLDpcQJbtlm.WO0GUTc4EU2flDuPrgJ4XG2QmTsABlxiX28vbgljYv5kdraJ/8QXn06aSb5wpOjajwfd7VO/ # SysAdmin
+  darryl: $6$mnm$yDSyjjyEu2Iu.awlpKf8SsSOSWqSv2U5fwUHUYJWu3ZVST5WgFd2t.VoW/lrUUvOHien1NQN69NiPAez8oio8/ # DEV2

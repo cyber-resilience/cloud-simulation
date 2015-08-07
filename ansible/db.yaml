@@ -1,0 +1,5 @@
+---
+- name:  db server
+  hosts: tag_SystemType_DBSERVER
+  roles:
+    - db

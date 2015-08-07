@@ -1,0 +1,5 @@
+---
+- name:  start simulation
+  hosts: tag_AnsibleCreated_True
+  roles:
+    - simulation

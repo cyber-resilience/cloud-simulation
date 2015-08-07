@@ -1,0 +1,14 @@
+---
+# Service Handlers
+
+- name:     restart sshd
+  sudo:     yes
+  service:  name=sshd state=restarted
+
+- name:     restart auditd
+  sudo:     yes
+  service:  name=auditd state=restarted
+
+- name:     restart awslogs
+  sudo:     yes
+  service:  name=awslogs state=restarted

@@ -1,0 +1,8 @@
+---
+- name:  setup common role
+  hosts: tag_AnsibleCreated_True
+  pre_tasks:
+    - name: ec2 facts
+      ec2_facts:
+  roles:
+    - common
